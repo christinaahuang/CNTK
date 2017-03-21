@@ -677,7 +677,14 @@ void CPUSparseMatrix<ElemType>::Allocate(const size_t numRows, const size_t numC
         LogicError("Error, calling allocate with dimensions (%d, %d), but the matrix has dimension (%d, %d).", (int)numRows, (int)numCols, (int)GetNumRows(), (int)GetNumCols());
 
     size_t numNZElemToReserve = max(numNZElemRequested, (size_t) 1);
-    size_t newCompIndexSize = (numCols > numRows ? numCols : numRows) + 1;
+    size_t newCompIndexSize;
+    if (GetFormat() == MatrixFormat::matrixFormatSparseCSC)
+        newCompIndexSize = numCols + 1;
+    else if (GetFormat() == MatrixFormat::matrixFormatSparseCSR)
+        newCompIndexSize = numRows + 1;
+    else
+        newCompIndexSize = (numCols > numRows ? numCols : numRows) + 1;
+
     bool reallocate = (GetSizeAllocated() < numNZElemToReserve || (GetSizeAllocated() > numNZElemToReserve && !growOnly) || GetCompIndexSize() < newCompIndexSize);
 
     if (reallocate)
@@ -690,10 +697,6 @@ void CPUSparseMatrix<ElemType>::Allocate(const size_t numRows, const size_t numC
 
             if (keepExistingValues && (NzCount() > numNZElemToReserve || GetCompIndexSize() > newCompIndexSize))
                 LogicError("Allocate: To keep values m_nz should <= numNZElemToReserve and m_compIndexSize <= newCompIndexSize");
-
-            memset(pArray, 0, sizeof(ElemType) * numNZElemToReserve);
-            memset(unCompIndex, 0, sizeof(CPUSPARSE_INDEX_TYPE) * numNZElemToReserve);
-            memset(compIndex, 0, sizeof(CPUSPARSE_INDEX_TYPE) * newCompIndexSize);
 
             if (keepExistingValues && NzCount() > 0)
             {
